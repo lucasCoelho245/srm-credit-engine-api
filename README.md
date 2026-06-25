@@ -1,6 +1,9 @@
-# SRM Credit Engine Backend
+# SRM Credit Engine API
 
 API Spring Boot responsável por precificar, simular e liquidar recebíveis.
+
+Repositório da API do projeto SRM Credit Engine. O frontend fica separado em
+`srm-credit-engine-web`.
 
 ## Requisitos
 
@@ -37,7 +40,8 @@ Na raiz do projeto:
 docker compose up --build
 ```
 
-Esse fluxo sobe PostgreSQL, backend e frontend.
+Esse fluxo sobe PostgreSQL e API. Depois disso, a API fica disponível em
+`http://localhost:8080`.
 
 ## Endpoints
 
