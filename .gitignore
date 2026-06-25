@@ -1,0 +1,14 @@
+target/
+*.jar
+*.war
+*.log
+
+.idea/
+.vscode/
+
+.env
+.env.*
+!.env.example
+
+hs_err_pid*
+replay_pid*

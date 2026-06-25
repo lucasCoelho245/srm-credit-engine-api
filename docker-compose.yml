@@ -1,0 +1,39 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: srm_postgres
+    environment:
+      POSTGRES_DB: srm_credit
+      POSTGRES_USER: srm
+      POSTGRES_PASSWORD: srm123
+    ports:
+      - "5432:5432"
+    volumes:
+      - srm_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U srm -d srm_credit"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: srm_backend
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/srm_credit
+      SPRING_DATASOURCE_USERNAME: srm
+      SPRING_DATASOURCE_PASSWORD: srm123
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  srm_pgdata:
