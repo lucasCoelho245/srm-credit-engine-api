@@ -5,6 +5,12 @@ import io.swagger.v3.oas.models.info.Info;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * Configura o bean OpenAPI para personalizar o Swagger UI com título, versão e descrição.
+ *
+ * Sem esse bean o Swagger exibiria metadados genéricos. Com ele, a tela em
+ * /swagger-ui.html mostra o nome e a versão corretos do serviço.
+ */
 @Configuration
 public class SwaggerConfig {
 

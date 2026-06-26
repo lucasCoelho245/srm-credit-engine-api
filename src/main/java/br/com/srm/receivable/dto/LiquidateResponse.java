@@ -7,6 +7,12 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * DTO de resposta da liquidação: contém todos os campos da transação persistida.
+ *
+ * Retorna o id gerado para que o frontend possa destacar o item recém-criado na listagem,
+ * e o liquidatedAt para exibir o timestamp exato da operação no extrato.
+ */
 public record LiquidateResponse(
         UUID id,
         String cedente,

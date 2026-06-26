@@ -7,6 +7,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+/**
+ * Interceptor HTTP que registra método, URL, status e tempo de resposta de cada requisição.
+ *
+ * Implementa HandlerInterceptor do Spring MVC com dois pontos de intercepção:
+ *   - preHandle: salva o timestamp antes de o controller processar a requisição
+ *   - afterCompletion: calcula o tempo decorrido e loga o resultado após a resposta
+ *
+ * Centraliza o logging em um único lugar — sem esse interceptor, seria necessário
+ * adicionar log.info manualmente em cada método de cada controller.
+ * Registrado via WebConfig para atuar apenas nas rotas /api/**.
+ */
 @Component
 public class RequestLoggingInterceptor implements HandlerInterceptor {
 
