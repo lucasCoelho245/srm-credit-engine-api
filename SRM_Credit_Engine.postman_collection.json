@@ -1,0 +1,506 @@
+{
+  "info": {
+    "name": "SRM Credit Engine API",
+    "description": "Collection completa para testar e demonstrar o SRM Credit Engine.\n\nVariáveis de ambiente:\n- {{base_url}} → http://localhost:8080/api/v1 (local) ou https://mango-hill-003c3da10.7.azurestaticapps.net/api/v1 (Azure)\n- {{brl_id}}, {{usd_id}}, {{duplicata_id}}, {{cheque_id}} → preenchidos automaticamente pelo request 'Setup — Capturar IDs'\n\nFluxo de demonstração recomendado:\n1. Setup → Capturar IDs\n2. Recebíveis → Simular (BRL)\n3. Recebíveis → Liquidar\n4. Relatórios → Listar Transações\n5. Relatórios → Extrato Filtrado",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080/api/v1",
+      "description": "Troque por https://mango-hill-003c3da10.7.azurestaticapps.net/api/v1 para testar o Azure"
+    },
+    {
+      "key": "brl_id",
+      "value": "a0000000-0000-0000-0000-000000000001"
+    },
+    {
+      "key": "usd_id",
+      "value": "a0000000-0000-0000-0000-000000000002"
+    },
+    {
+      "key": "duplicata_id",
+      "value": "b0000000-0000-0000-0000-000000000001"
+    },
+    {
+      "key": "cheque_id",
+      "value": "b0000000-0000-0000-0000-000000000002"
+    },
+    {
+      "key": "last_transaction_id",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Setup",
+      "item": [
+        {
+          "name": "Capturar IDs (seed data)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const currencies = pm.response.json();",
+                  "const brl = currencies.find(c => c.code === 'BRL');",
+                  "const usd = currencies.find(c => c.code === 'USD');",
+                  "if (brl) pm.collectionVariables.set('brl_id', brl.id);",
+                  "if (usd) pm.collectionVariables.set('usd_id', usd.id);",
+                  "pm.test('BRL encontrado', () => pm.expect(brl).to.exist);",
+                  "pm.test('USD encontrado', () => pm.expect(usd).to.exist);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/currencies",
+            "description": "Lista moedas e salva os IDs de BRL e USD nas variáveis da collection automaticamente."
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Moedas",
+      "item": [
+        {
+          "name": "Listar Moedas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Retorna array', () => pm.expect(pm.response.json()).to.be.an('array'));",
+                  "pm.test('Contém BRL e USD', () => {",
+                  "  const codes = pm.response.json().map(c => c.code);",
+                  "  pm.expect(codes).to.include('BRL');",
+                  "  pm.expect(codes).to.include('USD');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/currencies",
+            "description": "Retorna todas as moedas cadastradas (BRL e USD no seed)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Taxas de Câmbio",
+      "item": [
+        {
+          "name": "Listar Taxas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Retorna array não vazio', () => pm.expect(pm.response.json().length).to.be.above(0));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/exchange-rates",
+            "description": "Lista todas as taxas de câmbio cadastradas."
+          }
+        },
+        {
+          "name": "Cadastrar Nova Taxa",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json();",
+                  "pm.test('Taxa retornada', () => {",
+                  "  pm.expect(r.fromCurrencyCode).to.equal('USD');",
+                  "  pm.expect(r.toCurrencyCode).to.equal('BRL');",
+                  "  pm.expect(r.rate).to.be.a('number');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/exchange-rates",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fromCurrencyCode\": \"USD\",\n  \"toCurrencyCode\": \"BRL\",\n  \"rate\": 5.50,\n  \"effectiveDate\": \"2026-06-26\"\n}"
+            },
+            "description": "Cadastra ou atualiza uma taxa de câmbio. Se já existir taxa para o mesmo par e data, sobrescreve."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Tipos de Produto",
+      "item": [
+        {
+          "name": "Listar Tipos de Produto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const products = pm.response.json();",
+                  "pm.test('Contém Duplicata e Cheque', () => {",
+                  "  const names = products.map(p => p.name);",
+                  "  pm.expect(names.some(n => n.includes('Duplicata'))).to.be.true;",
+                  "  pm.expect(names.some(n => n.includes('Cheque'))).to.be.true;",
+                  "});",
+                  "const dup = products.find(p => p.name.includes('Duplicata'));",
+                  "if (dup) pm.collectionVariables.set('duplicata_id', dup.id);",
+                  "const cheque = products.find(p => p.name.includes('Cheque'));",
+                  "if (cheque) pm.collectionVariables.set('cheque_id', cheque.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/product-types",
+            "description": "Lista os tipos de recebível disponíveis.\n\nSpreads:\n- Duplicata Mercantil: 1,5% a.m.\n- Cheque Pré-datado: 2,5% a.m."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Recebíveis",
+      "item": [
+        {
+          "name": "Simular — BRL para BRL (canônico)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('VP correto (9285.9941)', () => pm.expect(r.presentValue).to.equal(9285.9941));",
+                  "pm.test('Deságio correto (714.0059)', () => pm.expect(r.discount).to.equal(714.0059));",
+                  "pm.test('Sem taxa de câmbio (same currency)', () => pm.expect(r.exchangeRateUsed).to.be.null);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/receivables/simulate",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cedente\": \"Petrobras S.A.\",\n  \"faceValue\": 10000,\n  \"baseRate\": 0.01,\n  \"termMonths\": 3,\n  \"productTypeId\": \"{{duplicata_id}}\",\n  \"titleCurrencyId\": \"{{brl_id}}\",\n  \"paymentCurrencyId\": \"{{brl_id}}\"\n}"
+            },
+            "description": "Simula o deságio SEM persistir. Resultado esperado:\n- VP = 9285.9941\n- Deságio = 714.0059\n- exchangeRateUsed = null\n\nFórmula: VP = 10000 / (1 + 0.01 + 0.015)^3"
+          }
+        },
+        {
+          "name": "Simular — Cheque Pré-datado (spread maior)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('VP menor que Duplicata (spread maior)', () => pm.expect(r.presentValue).to.be.below(9285.9941));",
+                  "pm.test('Deságio maior que Duplicata', () => pm.expect(r.discount).to.be.above(714.0059));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/receivables/simulate",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cedente\": \"Empresa ABC\",\n  \"faceValue\": 10000,\n  \"baseRate\": 0.01,\n  \"termMonths\": 3,\n  \"productTypeId\": \"{{cheque_id}}\",\n  \"titleCurrencyId\": \"{{brl_id}}\",\n  \"paymentCurrencyId\": \"{{brl_id}}\"\n}"
+            },
+            "description": "Cheque tem spread de 2,5% a.m. vs 1,5% da Duplicata. O deságio deve ser maior."
+          }
+        },
+        {
+          "name": "Simular — USD para BRL (cross-currency)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('Taxa de câmbio aplicada', () => pm.expect(r.exchangeRateUsed).to.not.be.null);",
+                  "pm.test('VP em BRL (valor maior que USD bruto)', () => pm.expect(r.presentValue).to.be.above(900));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/receivables/simulate",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cedente\": \"Acme Exportadora\",\n  \"faceValue\": 1000,\n  \"baseRate\": 0.01,\n  \"termMonths\": 3,\n  \"productTypeId\": \"{{duplicata_id}}\",\n  \"titleCurrencyId\": \"{{usd_id}}\",\n  \"paymentCurrencyId\": \"{{brl_id}}\"\n}"
+            },
+            "description": "Título em USD, pagamento em BRL. O sistema busca a taxa mais recente e converte o VP.\nexchangeRateUsed deve vir preenchido (ex: 5.41)."
+          }
+        },
+        {
+          "name": "Liquidar — BRL para BRL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201 Created', () => pm.response.to.have.status(201));",
+                  "const r = pm.response.json();",
+                  "pm.test('ID gerado', () => pm.expect(r.id).to.be.a('string').and.not.empty);",
+                  "pm.test('VP correto', () => pm.expect(r.presentValue).to.equal(9285.9941));",
+                  "pm.test('LiquidatedAt preenchido', () => pm.expect(r.liquidatedAt).to.not.be.null);",
+                  "pm.collectionVariables.set('last_transaction_id', r.id);",
+                  "console.log('Transaction ID salvo:', r.id);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/receivables/liquidate",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cedente\": \"Petrobras S.A.\",\n  \"faceValue\": 10000,\n  \"baseRate\": 0.01,\n  \"termMonths\": 3,\n  \"productTypeId\": \"{{duplicata_id}}\",\n  \"titleCurrencyId\": \"{{brl_id}}\",\n  \"paymentCurrencyId\": \"{{brl_id}}\",\n  \"dueDate\": \"2026-09-26\"\n}"
+            },
+            "description": "Persiste a transação no banco. Retorna 201 Created com o ID UUID da transação.\nO ID é salvo na variável {{last_transaction_id}} para uso nos próximos requests."
+          }
+        },
+        {
+          "name": "Simular — Validação (faceValue negativo → 400)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 400 Bad Request', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/receivables/simulate",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cedente\": \"Teste\",\n  \"faceValue\": -100,\n  \"baseRate\": 0.01,\n  \"termMonths\": 3,\n  \"productTypeId\": \"{{duplicata_id}}\",\n  \"titleCurrencyId\": \"{{brl_id}}\",\n  \"paymentCurrencyId\": \"{{brl_id}}\"\n}"
+            },
+            "description": "Testa validação de entrada. faceValue negativo deve retornar 400 com mensagem de erro."
+          }
+        },
+        {
+          "name": "Simular — Produto inexistente → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404 Not Found', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/receivables/simulate",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cedente\": \"Teste\",\n  \"faceValue\": 1000,\n  \"baseRate\": 0.01,\n  \"termMonths\": 3,\n  \"productTypeId\": \"00000000-0000-0000-0000-000000000000\",\n  \"titleCurrencyId\": \"{{brl_id}}\",\n  \"paymentCurrencyId\": \"{{brl_id}}\"\n}"
+            },
+            "description": "Produto com UUID inexistente deve retornar 404 com mensagem padronizada pelo GlobalExceptionHandler."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Relatórios",
+      "item": [
+        {
+          "name": "Listar Transações (paginado)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('Estrutura de página presente', () => {",
+                  "  pm.expect(r).to.have.property('content');",
+                  "  pm.expect(r).to.have.property('totalElements');",
+                  "  pm.expect(r).to.have.property('totalPages');",
+                  "});",
+                  "pm.test('Tem transações', () => pm.expect(r.totalElements).to.be.above(0));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/transactions?page=0&size=10",
+              "query": [
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            },
+            "description": "Lista todas as transações liquidadas, ordenadas por data decrescente. Suporta paginação via page e size."
+          }
+        },
+        {
+          "name": "Extrato Filtrado — por cedente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "pm.test('Filtro funcionando', () => {",
+                  "  if (r.totalElements > 0) {",
+                  "    r.content.forEach(tx => pm.expect(tx.cedente.toLowerCase()).to.include('petrobras'));",
+                  "  }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reports/extract?cedente=Petrobras&page=0&size=10",
+              "query": [
+                { "key": "cedente", "value": "Petrobras", "description": "Busca parcial, case-insensitive" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            },
+            "description": "Extrato com filtro por cedente (busca parcial, case-insensitive). Combina com startDate, endDate e paymentCurrencyCode."
+          }
+        },
+        {
+          "name": "Extrato Filtrado — por período",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Estrutura de página presente', () => pm.expect(pm.response.json()).to.have.property('content'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reports/extract?startDate=2026-01-01T00:00:00Z&endDate=2026-12-31T23:59:59Z&page=0&size=10",
+              "query": [
+                { "key": "startDate", "value": "2026-01-01T00:00:00Z", "description": "ISO 8601 UTC" },
+                { "key": "endDate", "value": "2026-12-31T23:59:59Z", "description": "ISO 8601 UTC" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            },
+            "description": "Filtro por período. startDate e endDate aceitam formato ISO 8601 em UTC."
+          }
+        },
+        {
+          "name": "Extrato Filtrado — por moeda de pagamento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const r = pm.response.json();",
+                  "if (r.totalElements > 0) {",
+                  "  pm.test('Todas em BRL', () => r.content.forEach(tx => pm.expect(tx.paymentCurrencyCode).to.equal('BRL')));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reports/extract?paymentCurrencyCode=BRL&page=0&size=10",
+              "query": [
+                { "key": "paymentCurrencyCode", "value": "BRL" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            },
+            "description": "Filtro por moeda de pagamento. Use BRL ou USD."
+          }
+        },
+        {
+          "name": "Extrato — Todos os filtros combinados",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reports/extract?cedente=Petrobras&paymentCurrencyCode=BRL&startDate=2026-01-01T00:00:00Z&endDate=2026-12-31T23:59:59Z&page=0&size=10",
+              "query": [
+                { "key": "cedente", "value": "Petrobras" },
+                { "key": "paymentCurrencyCode", "value": "BRL" },
+                { "key": "startDate", "value": "2026-01-01T00:00:00Z" },
+                { "key": "endDate", "value": "2026-12-31T23:59:59Z" },
+                { "key": "page", "value": "0" },
+                { "key": "size", "value": "10" }
+              ]
+            },
+            "description": "Todos os filtros combinados: cedente + moeda + período. Os filtros são opcionais e independentes — qualquer combinação é válida."
+          }
+        }
+      ]
+    }
+  ]
+}
