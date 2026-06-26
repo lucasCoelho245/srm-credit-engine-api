@@ -9,11 +9,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 
+/**
+ * Controller de relatórios: listagem geral e extrato filtrado de transações.
+ *
+ * Todos os parâmetros do extrato são opcionais — o front pode enviar qualquer
+ * combinação de filtros. O @PageableDefault configura paginação padrão para
+ * não retornar todos os registros quando o cliente não informar tamanho de página.
+ */
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -31,7 +37,7 @@ public class ReportController {
     }
 
     @GetMapping("/reports/extract")
-    @Operation(summary = "Extrato filtrado por período, cedente e moeda. SQL nativo com LIMIT/OFFSET.")
+    @Operation(summary = "Extrato filtrado por período, cedente e moeda. Filtros opcionais.")
     public Page<TransactionPageResponse> extract(
             @Parameter(description = "Data início (ISO-8601)", example = "2024-01-01T00:00:00Z")
             @RequestParam(required = false) Instant startDate,

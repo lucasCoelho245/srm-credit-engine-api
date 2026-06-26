@@ -7,6 +7,13 @@ import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
+/**
+ * Repositório de transações: operações de escrita (save) e leitura simples.
+ *
+ * Herda de JpaRepository, que já fornece save, findById, findAll e delete.
+ * Não declaramos queries customizadas aqui — as consultas analíticas com filtros
+ * ficam no ReportRepository para separar responsabilidades.
+ */
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
     Page<Transaction> findAll(Pageable pageable);

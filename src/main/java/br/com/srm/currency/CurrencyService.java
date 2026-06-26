@@ -12,6 +12,15 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Serviço de câmbio: gerencia moedas e taxas de câmbio.
+ *
+ * A lógica de negócio aqui é simples: cadastrar taxas de câmbio (upsert por
+ * par de moedas e data) e buscar a taxa vigente mais recente para uma data.
+ * Essa abordagem de "taxa mais recente até a data" permite que uma taxa
+ * cadastrada continue válida para liquidações futuras até que uma nova taxa
+ * seja registrada.
+ */
 @Service
 @RequiredArgsConstructor
 public class CurrencyService {
@@ -35,6 +44,11 @@ public class CurrencyService {
                 .toList();
     }
 
+    /**
+     * Cadastra ou atualiza uma taxa de câmbio (upsert).
+     * Se já existir uma taxa para o mesmo par de moedas e a mesma data, atualiza o valor
+     * em vez de criar um registro duplicado — evita inconsistência na tela de câmbio.
+     */
     @Transactional
     public ExchangeRateResponse saveExchangeRate(ExchangeRateRequest request) {
         Currency fromCurrency = currencyRepository.findByCode(request.fromCurrencyCode())
@@ -52,7 +66,6 @@ public class CurrencyService {
         ExchangeRate exchangeRate = exchangeRateRepository
                 .findByFromCurrency_CodeAndToCurrency_CodeAndEffectiveDate(
                         fromCurrency.getCode(), toCurrency.getCode(), request.effectiveDate())
-                // Mesmo par e mesma data atualizam a taxa existente, evitando duplicidade na tela.
                 .map(existing -> {
                     existing.updateRate(request.rate());
                     return existing;
@@ -63,10 +76,16 @@ public class CurrencyService {
         return ExchangeRateResponse.from(exchangeRateRepository.save(exchangeRate));
     }
 
+    /**
+     * Retorna a taxa de câmbio mais recente disponível até a data informada.
+     *
+     * "Mais recente até a data" significa que se hoje é dia 25 e a última taxa
+     * cadastrada é do dia 20, usamos a do dia 20 — a taxa continua valendo até
+     * que uma nova seja cadastrada. Lança BusinessException se não houver nenhuma
+     * taxa disponível para o par de moedas.
+     */
     @Transactional(readOnly = true)
     public ExchangeRate findRateForDate(String fromCode, String toCode, LocalDate date) {
-        // Pego a taxa mais recente até a data pedida; assim uma taxa cadastrada antes
-        // continua valendo para liquidações futuras até existir uma nova taxa.
         return exchangeRateRepository
                 .findFirstByFromCurrency_CodeAndToCurrency_CodeAndEffectiveDateLessThanEqualOrderByEffectiveDateDesc(
                         fromCode, toCode, date)

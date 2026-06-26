@@ -17,6 +17,19 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * Serviço principal de recebíveis: coordena simulação e liquidação.
+ *
+ * Este serviço fica na camada de aplicação — orquestra as dependências
+ * (motor de cálculo, fábrica de estratégias, repositórios) sem conter
+ * a regra de negócio financeira, que vive no PricingEngine.
+ *
+ * Organização do pacote por domínio (receivable, currency, reports) em vez
+ * de por camada (controller, service, repository) é uma escolha de arquitetura
+ * chamada "feature-based" ou "vertical slices". Facilita encontrar tudo que
+ * pertence ao mesmo domínio sem navegar entre pastas diferentes. A separação
+ * de camadas ainda existe via Controller → Service → Repository.
+ */
 @Service
 @RequiredArgsConstructor
 public class ReceivableService {
@@ -36,18 +49,22 @@ public class ReceivableService {
                 .toList();
     }
 
+    /**
+     * Simula o deságio sem persistir nada no banco — serve só para preview em tempo real
+     * enquanto o operador preenche o formulário. Não cria histórico de transação.
+     */
     @Transactional(readOnly = true)
-    // Simular é só preview: calcula e devolve para o front, mas não grava transação no banco.
     public SimulateResponse simulate(SimulateRequest request) {
         ProductType productType = findProductType(request.productTypeId());
         Currency titleCurrency = findCurrency(request.titleCurrencyId());
         Currency paymentCurrency = findCurrency(request.paymentCurrencyId());
 
-        // A estratégia define o spread conforme o tipo de recebível escolhido pelo operador.
+        // A estratégia define o spread conforme o tipo de recebível escolhido pelo operador
         PricingStrategy strategy = strategyFactory.resolve(productType.getName());
         PricingResult result = pricingEngine.calculate(
                 request.faceValue(), request.baseRate(), request.termMonths(), strategy);
 
+        // Percentual do deságio em relação ao valor de face, para exibir no formulário
         BigDecimal discountPercent = result.discount()
                 .divide(request.faceValue(), 4, RoundingMode.HALF_EVEN)
                 .multiply(new BigDecimal("100"))
@@ -58,7 +75,7 @@ public class ReceivableService {
 
         boolean isCrossCurrency = !titleCurrency.getCode().equals(paymentCurrency.getCode());
         if (isCrossCurrency) {
-            // Se as moedas forem diferentes, uso a taxa vigente de hoje, que é o momento da operação.
+            // Se as moedas forem diferentes, busca a taxa vigente hoje para converter o VP
             ExchangeRate rate = currencyService.findRateForDate(
                     titleCurrency.getCode(), paymentCurrency.getCode(), LocalDate.now());
             exchangeRateUsed = rate.getRate();
@@ -78,8 +95,12 @@ public class ReceivableService {
         );
     }
 
+    /**
+     * Liquida o recebível: faz o mesmo cálculo da simulação, mas persiste a transação
+     * no banco dentro de uma transação ACID. Se qualquer coisa falhar, o rollbackFor
+     * garante que nenhuma liquidação fique pela metade.
+     */
     @Transactional(rollbackFor = Exception.class)
-    // Liquidar é o fluxo "valendo": calcula igual à simulação, mas persiste a operação.
     public LiquidateResponse liquidate(LiquidateRequest request) {
         ProductType productType = findProductType(request.productTypeId());
         Currency titleCurrency = findCurrency(request.titleCurrencyId());
@@ -92,13 +113,15 @@ public class ReceivableService {
         BigDecimal exchangeRateUsed = null;
         boolean isCrossCurrency = !titleCurrency.getCode().equals(paymentCurrency.getCode());
         if (isCrossCurrency) {
-            // Guardo a taxa usada para o extrato mostrar exatamente como aquela liquidação foi feita.
+            // Guarda a taxa usada no momento da liquidação para que o extrato
+            // mostre exatamente como aquela operação foi precificada
             ExchangeRate rate = currencyService.findRateForDate(
                     titleCurrency.getCode(), paymentCurrency.getCode(), LocalDate.now());
             exchangeRateUsed = rate.getRate();
         }
 
-        // Depois do cálculo, monto a entidade que vira histórico da liquidação.
+        // A factory method Transaction.create() garante que a entidade nasce sempre
+        // com todos os campos obrigatórios preenchidos, evitando estado inválido
         Transaction transaction = Transaction.create(
                 request.cedente(),
                 request.faceValue(),
@@ -115,7 +138,7 @@ public class ReceivableService {
 
         Transaction saved = transactionRepository.save(transaction);
 
-        // A resposta já leva o id e o cedente para o front abrir a listagem no item recém-salvo.
+        // A resposta carrega o id para o front conseguir destacar o item recém-salvo na listagem
         return new LiquidateResponse(
                 saved.getId(),
                 saved.getCedente(),

@@ -12,6 +12,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Controller de câmbio: expõe endpoints para consultar moedas e gerenciar taxas de câmbio.
+ *
+ * O POST de exchange-rates faz upsert (cria ou atualiza) para o mesmo par de moedas
+ * e data — o service garante que não haverá duplicata na tabela.
+ */
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -32,6 +38,7 @@ public class CurrencyController {
         return currencyService.listExchangeRates();
     }
 
+    // 201 Created porque um novo registro pode ser gerado; se for update, ainda retorna 201 por convenção
     @PostMapping("/exchange-rates")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Cadastra ou atualiza taxa de câmbio para uma data")

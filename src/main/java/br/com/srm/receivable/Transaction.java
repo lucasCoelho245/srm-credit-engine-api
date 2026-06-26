@@ -9,6 +9,19 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * Entidade JPA que representa uma liquidação de recebível gravada no banco.
+ *
+ * Cada registro aqui é imutável por design: uma liquidação nunca é editada,
+ * apenas criada. Por isso todos os campos são privados sem setter, e o único
+ * jeito de criar uma Transaction é pelo método estático create().
+ *
+ * Lombok elimina o boilerplate:
+ *   - @Getter gera os getters de todos os campos
+ *   - @NoArgsConstructor(PROTECTED) cria construtor sem args só para o JPA usar internamente
+ *   - @EqualsAndHashCode(of = "id") compara entidades pelo ID, não por valor de campo
+ *   - @ToString exibe apenas campos seguros nos logs, sem carregar os joins lazy
+ */
 @Entity
 @Table(name = "transactions")
 @Getter
@@ -39,6 +52,8 @@ public class Transaction {
     @Column(name = "term_months", nullable = false)
     private Integer termMonths;
 
+    // FetchType.LAZY: o JPA só vai ao banco buscar o ProductType quando o campo for acessado,
+    // não automaticamente ao carregar a Transaction. Melhora performance em listagens.
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "product_type_id")
     private ProductType productType;
@@ -51,6 +66,7 @@ public class Transaction {
     @JoinColumn(name = "payment_currency_id")
     private Currency paymentCurrency;
 
+    // Nulo quando a operação é em moeda única (BRL→BRL). Preenchido só em cross-currency.
     @Column(name = "exchange_rate_used", precision = 19, scale = 6)
     private BigDecimal exchangeRateUsed;
 
@@ -60,9 +76,14 @@ public class Transaction {
     @Column(name = "liquidated_at")
     private Instant liquidatedAt;
 
+    // updatable = false: uma vez gravado, o createdAt nunca é alterado pelo JPA
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt = Instant.now();
 
+    /**
+     * Único ponto de criação de Transaction. Static factory em vez de construtor
+     * público evita que alguém crie uma Transaction sem preencher os campos obrigatórios.
+     */
     public static Transaction create(
             String cedente, BigDecimal faceValue, BigDecimal presentValue,
             BigDecimal discount, BigDecimal baseRate, Integer termMonths,
