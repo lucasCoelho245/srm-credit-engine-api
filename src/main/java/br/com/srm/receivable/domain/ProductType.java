@@ -1,4 +1,4 @@
-package br.com.srm.receivable;
+package br.com.srm.receivable.domain;
 
 import jakarta.persistence.*;
 import lombok.*;

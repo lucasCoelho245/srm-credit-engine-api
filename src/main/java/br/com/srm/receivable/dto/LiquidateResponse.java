@@ -1,6 +1,6 @@
 package br.com.srm.receivable.dto;
 
-import br.com.srm.receivable.Transaction;
+import br.com.srm.receivable.domain.Transaction;
 
 import java.math.BigDecimal;
 import java.time.Instant;

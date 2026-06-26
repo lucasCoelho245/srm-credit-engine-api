@@ -1,6 +1,6 @@
 package br.com.srm.receivable.dto;
 
-import br.com.srm.receivable.ProductType;
+import br.com.srm.receivable.domain.ProductType;
 
 import java.math.BigDecimal;
 import java.util.UUID;

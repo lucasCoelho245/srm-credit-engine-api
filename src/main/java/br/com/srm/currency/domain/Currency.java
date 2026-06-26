@@ -1,4 +1,4 @@
-package br.com.srm.currency;
+package br.com.srm.currency.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -6,6 +6,10 @@ import lombok.*;
 import java.time.Instant;
 import java.util.UUID;
 
+/**
+ * Entidade que representa uma moeda suportada pelo sistema (ex: BRL, USD).
+ * Cadastrada via seed na inicialização — não é criada pelo operador em tempo de uso.
+ */
 @Entity
 @Table(name = "currencies")
 @Getter

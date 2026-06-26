@@ -1,12 +1,16 @@
-package br.com.srm.receivable;
+package br.com.srm.receivable.service;
 
 import br.com.srm.common.exception.ResourceNotFoundException;
-import br.com.srm.currency.Currency;
-import br.com.srm.currency.CurrencyRepository;
-import br.com.srm.currency.CurrencyService;
-import br.com.srm.currency.ExchangeRate;
+import br.com.srm.currency.domain.Currency;
+import br.com.srm.currency.domain.ExchangeRate;
+import br.com.srm.currency.repository.CurrencyRepository;
+import br.com.srm.currency.service.CurrencyService;
+import br.com.srm.receivable.domain.ProductType;
+import br.com.srm.receivable.domain.Transaction;
 import br.com.srm.receivable.dto.*;
 import br.com.srm.receivable.pricing.*;
+import br.com.srm.receivable.repository.ProductTypeRepository;
+import br.com.srm.receivable.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,15 +24,14 @@ import java.util.UUID;
 /**
  * Serviço principal de recebíveis: coordena simulação e liquidação.
  *
- * Este serviço fica na camada de aplicação — orquestra as dependências
+ * Este serviço fica na camada de aplicação (service) — orquestra as dependências
  * (motor de cálculo, fábrica de estratégias, repositórios) sem conter
  * a regra de negócio financeira, que vive no PricingEngine.
  *
- * Organização do pacote por domínio (receivable, currency, reports) em vez
- * de por camada (controller, service, repository) é uma escolha de arquitetura
- * chamada "feature-based" ou "vertical slices". Facilita encontrar tudo que
- * pertence ao mesmo domínio sem navegar entre pastas diferentes. A separação
- * de camadas ainda existe via Controller → Service → Repository.
+ * Organização do pacote por domínio (currency, receivable, reports) com sub-pacotes
+ * por camada (domain, repository, service, controller) segue o padrão "feature-based
+ * layered architecture": agrupa por domínio para facilitar a navegação e separa
+ * por camada para deixar a arquitetura em 3 camadas visível na estrutura de pastas.
  */
 @Service
 @RequiredArgsConstructor

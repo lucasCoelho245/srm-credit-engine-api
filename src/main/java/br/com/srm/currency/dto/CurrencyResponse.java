@@ -1,6 +1,6 @@
 package br.com.srm.currency.dto;
 
-import br.com.srm.currency.Currency;
+import br.com.srm.currency.domain.Currency;
 
 import java.util.UUID;
 

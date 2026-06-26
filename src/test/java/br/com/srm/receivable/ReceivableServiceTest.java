@@ -2,11 +2,13 @@ package br.com.srm.receivable;
 
 import br.com.srm.common.exception.BusinessException;
 import br.com.srm.common.exception.ResourceNotFoundException;
-import br.com.srm.currency.Currency;
-import br.com.srm.currency.CurrencyRepository;
-import br.com.srm.currency.CurrencyService;
-import br.com.srm.currency.ExchangeRate;
-import br.com.srm.currency.ExchangeRateRepository;
+import br.com.srm.currency.domain.Currency;
+import br.com.srm.currency.domain.ExchangeRate;
+import br.com.srm.currency.repository.CurrencyRepository;
+import br.com.srm.currency.repository.ExchangeRateRepository;
+import br.com.srm.currency.service.CurrencyService;
+import br.com.srm.receivable.domain.ProductType;
+import br.com.srm.receivable.domain.Transaction;
 import br.com.srm.receivable.dto.LiquidateRequest;
 import br.com.srm.receivable.dto.LiquidateResponse;
 import br.com.srm.receivable.dto.SimulateRequest;
@@ -15,6 +17,9 @@ import br.com.srm.receivable.pricing.ChequeStrategy;
 import br.com.srm.receivable.pricing.DuplicataStrategy;
 import br.com.srm.receivable.pricing.PricingEngine;
 import br.com.srm.receivable.pricing.PricingStrategyFactory;
+import br.com.srm.receivable.repository.ProductTypeRepository;
+import br.com.srm.receivable.repository.TransactionRepository;
+import br.com.srm.receivable.service.ReceivableService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -158,7 +163,9 @@ class ReceivableServiceTest {
     }
 
     private ProductType createProductType(UUID id, String name, BigDecimal spread) throws Exception {
-        ProductType pt = new ProductType();
+        var ctor = ProductType.class.getDeclaredConstructor();
+        ctor.setAccessible(true);
+        ProductType pt = ctor.newInstance();
         setField(pt, "id", id);
         setField(pt, "name", name);
         setField(pt, "spreadMonthly", spread);

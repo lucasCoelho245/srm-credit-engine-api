@@ -1,6 +1,7 @@
-package br.com.srm.reports;
+package br.com.srm.reports.service;
 
 import br.com.srm.reports.dto.TransactionPageResponse;
+import br.com.srm.reports.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

@@ -1,8 +1,9 @@
-package br.com.srm.currency;
+package br.com.srm.currency.controller;
 
 import br.com.srm.currency.dto.CurrencyResponse;
 import br.com.srm.currency.dto.ExchangeRateRequest;
 import br.com.srm.currency.dto.ExchangeRateResponse;
+import br.com.srm.currency.service.CurrencyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

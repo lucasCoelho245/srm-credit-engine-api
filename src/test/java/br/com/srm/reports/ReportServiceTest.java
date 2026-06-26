@@ -1,6 +1,8 @@
 package br.com.srm.reports;
 
 import br.com.srm.reports.dto.TransactionPageResponse;
+import br.com.srm.reports.repository.ReportRepository;
+import br.com.srm.reports.service.ReportService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

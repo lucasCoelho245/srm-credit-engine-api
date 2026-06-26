@@ -1,10 +1,14 @@
-package br.com.srm.currency;
+package br.com.srm.currency.service;
 
 import br.com.srm.common.exception.BusinessException;
 import br.com.srm.common.exception.ResourceNotFoundException;
+import br.com.srm.currency.domain.Currency;
+import br.com.srm.currency.domain.ExchangeRate;
 import br.com.srm.currency.dto.CurrencyResponse;
 import br.com.srm.currency.dto.ExchangeRateRequest;
 import br.com.srm.currency.dto.ExchangeRateResponse;
+import br.com.srm.currency.repository.CurrencyRepository;
+import br.com.srm.currency.repository.ExchangeRateRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

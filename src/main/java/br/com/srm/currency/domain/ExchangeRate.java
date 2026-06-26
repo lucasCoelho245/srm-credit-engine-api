@@ -1,4 +1,4 @@
-package br.com.srm.currency;
+package br.com.srm.currency.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -8,6 +8,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
+/**
+ * Entidade que representa uma taxa de câmbio entre dois pares de moedas numa data específica.
+ * A constraint única (from, to, date) impede duplicatas do mesmo par na mesma data.
+ */
 @Entity
 @Table(name = "exchange_rates",
        uniqueConstraints = @UniqueConstraint(
@@ -47,6 +51,7 @@ public class ExchangeRate {
         this.effectiveDate = effectiveDate;
     }
 
+    /** Atualiza a taxa do mesmo par/data quando o operador recadastra. */
     public void updateRate(BigDecimal rate) {
         this.rate = rate;
     }

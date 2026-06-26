@@ -1,6 +1,6 @@
-package br.com.srm.reports;
+package br.com.srm.reports.repository;
 
-import br.com.srm.receivable.Transaction;
+import br.com.srm.receivable.domain.Transaction;
 import br.com.srm.reports.dto.TransactionPageResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

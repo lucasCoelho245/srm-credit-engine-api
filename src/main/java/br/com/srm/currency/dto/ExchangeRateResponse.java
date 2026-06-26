@@ -1,6 +1,6 @@
 package br.com.srm.currency.dto;
 
-import br.com.srm.currency.ExchangeRate;
+import br.com.srm.currency.domain.ExchangeRate;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.math.BigDecimal;

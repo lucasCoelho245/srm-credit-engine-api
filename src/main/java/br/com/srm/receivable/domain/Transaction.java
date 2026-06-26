@@ -1,6 +1,6 @@
-package br.com.srm.receivable;
+package br.com.srm.receivable.domain;
 
-import br.com.srm.currency.Currency;
+import br.com.srm.currency.domain.Currency;
 import jakarta.persistence.*;
 import lombok.*;
 

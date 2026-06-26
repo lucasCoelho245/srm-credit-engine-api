@@ -1,6 +1,7 @@
-package br.com.srm.receivable;
+package br.com.srm.receivable.controller;
 
 import br.com.srm.receivable.dto.*;
+import br.com.srm.receivable.service.ReceivableService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;

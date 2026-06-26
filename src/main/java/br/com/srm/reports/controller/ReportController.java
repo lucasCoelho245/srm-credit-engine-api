@@ -1,6 +1,7 @@
-package br.com.srm.reports;
+package br.com.srm.reports.controller;
 
 import br.com.srm.reports.dto.TransactionPageResponse;
+import br.com.srm.reports.service.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
